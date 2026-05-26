@@ -1,0 +1,38 @@
+<html>
+
+<head>
+    <title>To-Do List</title>
+</head>
+
+<body>
+    <h1>To-Do List</h1>
+    <input type="text">
+    <ul class="todo-input-bar">
+
+    </ul>
+</body>
+
+<script>
+    var list = [{
+        name: '吃饭',
+        complete: 0
+    }, {
+        name: '锻炼',
+        complete: 0
+    }, {
+        name: '写作业',
+        complete: 0
+    }]
+
+    renderTodoList(list)
+    function renderTodoList(list) {
+        var html = ''
+        list.forEach(element => {
+            html += '<li>' + element.name + '</li>'
+        });
+
+        document.querySelector('.todo-input-bar').innerHTML = html
+    }
+</script>
+
+</html>
