@@ -2,36 +2,97 @@
 
 <head>
     <title>To-Do List</title>
+    <meta charset="utf-8">
+    <style>
+        .main_wrapper {
+            margin-top: 100px;
+            margin-left: 100px;
+        }
+
+        .todo-input-bar {
+            padding-left: 20px;
+        }
+
+        .todo-input-bar li {
+            margin: 8px 0;
+        }
+
+        .todo-input-bar li.complete {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .todo-input-bar button {
+            margin-left: 8px;
+        }
+    </style>
 </head>
 
 <body>
     <h1>To-Do List</h1>
-    <input type="text">
+    <input class="todo-input" type="text" placeholder="添加至待办事项...">
     <ul class="todo-input-bar">
-
+        <!-- 待办事项 -->
+        <li class="">
+            <span>吃饭</span>
+            <button onclick="toggleComplete(0)">完成</button>
+            <button onclick="deleteTodo(0)">删除</button>
+        </li>
+        <li class="">
+            <span>锻炼</span>
+            <button onclick="toggleComplete(1)">完成</button>
+            <button onclick="deleteTodo(1)">删除</button>
+        </li>
+        <li class="">
+            <span>写作业</span>
+            <button onclick="toggleComplete(2)">完成</button>
+            <button onclick="deleteTodo(2)">删除</button>
+        </li>
     </ul>
 </body>
 
 <script>
-    var list = [{
-        name: '吃饭',
-        complete: 0
-    }, {
-        name: '锻炼',
-        complete: 0
-    }, {
-        name: '写作业',
-        complete: 0
-    }]
+    var list = []
 
     renderTodoList(list)
+
+    document.querySelector('.todo-input').addEventListener('keyup', (event) => {
+        if (event.key === 'Enter') {
+            if (!event.target.value || event.target.value.trim() === '') {
+                return
+            }
+            var value = event.target.value
+            list.push({
+                name: value,
+                complete: 0
+            })
+            renderTodoList(list)
+            event.target.value = ''
+        }
+    })
+
     function renderTodoList(list) {
         var html = ''
-        list.forEach(element => {
-            html += '<li>' + element.name + '</li>'
+        list.forEach((element, index) => {
+            html += '<li class="' + (element.complete ? 'complete' : '') + '">'
+            html += '<span>' + element.name + '</span>'
+            html += '<button onclick="toggleComplete(' + index + ')">' + (element.complete ? '取消完成' : '完成') + '</button>'
+            html += '<button onclick="deleteTodo(' + index + ')">删除</button>'
+            html += '</li>'
         });
 
+        console.log(html)
         document.querySelector('.todo-input-bar').innerHTML = html
+    }
+
+    function toggleComplete(index) {
+        list[index].complete = list[index].complete ? 0 : 1
+        renderTodoList(list)
+    }
+
+    function deleteTodo(index) {
+        list.splice(index, 1)
+        renderTodoList(list)
     }
 </script>
 
