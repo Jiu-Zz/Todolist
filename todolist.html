@@ -33,26 +33,12 @@
     <input class="todo-input" type="text" placeholder="添加至待办事项...">
     <ul class="todo-input-bar">
         <!-- 待办事项 -->
-        <li class="">
-            <span>吃饭</span>
-            <button onclick="toggleComplete(0)">完成</button>
-            <button onclick="deleteTodo(0)">删除</button>
-        </li>
-        <li class="">
-            <span>锻炼</span>
-            <button onclick="toggleComplete(1)">完成</button>
-            <button onclick="deleteTodo(1)">删除</button>
-        </li>
-        <li class="">
-            <span>写作业</span>
-            <button onclick="toggleComplete(2)">完成</button>
-            <button onclick="deleteTodo(2)">删除</button>
-        </li>
     </ul>
 </body>
 
 <script>
-    var list = []
+    var STORAGE_KEY = 'todolist-items'
+    var list = loadTodoList()
 
     renderTodoList(list)
 
@@ -66,10 +52,30 @@
                 name: value,
                 complete: 0
             })
+            saveTodoList()
             renderTodoList(list)
             event.target.value = ''
         }
     })
+
+    function loadTodoList() {
+        var saved = localStorage.getItem(STORAGE_KEY)
+
+        if (!saved) {
+            return []
+        }
+
+        try {
+            var parsed = JSON.parse(saved)
+            return Array.isArray(parsed) ? parsed : []
+        } catch (error) {
+            return []
+        }
+    }
+
+    function saveTodoList() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+    }
 
     function renderTodoList(list) {
         var html = ''
@@ -87,11 +93,13 @@
 
     function toggleComplete(index) {
         list[index].complete = list[index].complete ? 0 : 1
+        saveTodoList()
         renderTodoList(list)
     }
 
     function deleteTodo(index) {
         list.splice(index, 1)
+        saveTodoList()
         renderTodoList(list)
     }
 </script>
