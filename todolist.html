@@ -4,61 +4,414 @@
     <title>To-Do List</title>
     <meta charset="utf-8">
     <style>
+        /* 基础页面排版 */
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            margin: 0;
+            background: #f7f7f7;
+            color: #222;
+        }
+
         .main_wrapper {
-            margin-top: 100px;
-            margin-left: 100px;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 48px 20px 64px;
         }
 
-        .todo-input-bar {
-            padding-left: 20px;
+        .page-title {
+            margin: 0 0 20px;
+            font-size: 32px;
         }
 
-        .todo-input-bar li {
-            margin: 8px 0;
+        /* 白色面板作为主要工作区 */
+        .todo-panel {
+            background: #fff;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
         }
 
-        .todo-input-bar li.complete {
+        .todo-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        /* 输入框和编辑框使用同一套视觉规则 */
+        .todo-input,
+        .todo-edit-input {
+            flex: 1;
+            min-width: 0;
+            box-sizing: border-box;
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .todo-input:focus,
+        .todo-edit-input:focus {
+            border-color: #4c7ef3;
+        }
+
+        /* 顶部新增、筛选、操作按钮统一按钮样式 */
+        .todo-form button,
+        .toolbar button,
+        .todo-actions button {
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            background: #fff;
+            color: #222;
+            cursor: pointer;
+            padding: 9px 12px;
+            font-size: 14px;
+        }
+
+        .todo-form button:hover,
+        .toolbar button:hover,
+        .todo-actions button:hover {
+            border-color: #b8b8b8;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        /* 筛选按钮组 */
+        .filter-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-button.is-active {
+            background: #4c7ef3;
+            border-color: #4c7ef3;
+            color: #fff;
+        }
+
+        /* 统计区展示总数、未完成数和已完成数 */
+        .todo-stats {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* 没有已完成任务时，禁用批量清除按钮 */
+        .clear-completed-button:disabled {
+            color: #aaa;
+            cursor: not-allowed;
+            border-color: #ececec;
+            background: #fafafa;
+        }
+
+        /* 待办列表本体 */
+        .todo-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* 单条待办项的布局：内容在左，操作在右 */
+        .todo-item {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-top: 1px solid #efefef;
+        }
+
+        .todo-item:first-child {
+            border-top: none;
+            padding-top: 0;
+        }
+
+        /* 已完成状态的视觉反馈 */
+        .todo-item.complete .todo-text {
             text-decoration: line-through;
             color: #999;
         }
 
-        .todo-input-bar button {
-            margin-left: 8px;
+        /* 编辑态时让内容顶部对齐，避免输入框和按钮显得拥挤 */
+        .todo-item.editing {
+            align-items: flex-start;
+        }
+
+        .todo-text,
+        .todo-edit-input {
+            width: 100%;
+        }
+
+        .todo-text {
+            word-break: break-word;
+            line-height: 1.5;
+        }
+
+        .todo-item__content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        /* 空状态提示 */
+        .todo-empty {
+            margin: 0;
+            padding: 18px 0 4px;
+            color: #888;
+            text-align: center;
         }
     </style>
 </head>
 
 <body>
-    <h1>To-Do List</h1>
-    <input class="todo-input" type="text" placeholder="添加至待办事项...">
-    <ul class="todo-input-bar">
-        <!-- 待办事项 -->
-    </ul>
+    <div class="main_wrapper">
+        <h1 class="page-title">To-Do List</h1>
+
+        <section class="todo-panel">
+            <!-- 新增待办：回车或点击按钮提交 -->
+            <form class="todo-form">
+                <input class="todo-input" type="text" placeholder="添加至待办事项..." autocomplete="off">
+                <button type="submit">添加</button>
+            </form>
+
+            <!-- 筛选与批量操作 -->
+            <div class="toolbar">
+                <div class="filter-group" role="tablist" aria-label="待办筛选">
+                    <button type="button" class="filter-button is-active" data-filter="all">全部</button>
+                    <button type="button" class="filter-button" data-filter="active">未完成</button>
+                    <button type="button" class="filter-button" data-filter="completed">已完成</button>
+                </div>
+                <button type="button" class="clear-completed-button" data-action="clear-completed">清除已完成</button>
+            </div>
+
+            <!-- 统计区域会随 list 实时刷新 -->
+            <div class="todo-stats" aria-live="polite">
+                <span>总计 <strong id="total-count">0</strong></span>
+                <span>未完成 <strong id="active-count">0</strong></span>
+                <span>已完成 <strong id="completed-count">0</strong></span>
+            </div>
+
+            <!-- 这里由 JS 动态渲染所有待办项 -->
+            <ul class="todo-list"></ul>
+            <p class="todo-empty" hidden></p>
+        </section>
+    </div>
 </body>
 
 <script>
+    // 本地存储键名：负责保存和恢复待办数据
     var STORAGE_KEY = 'todolist-items'
+
+    // 内存中的主数据源，页面交互都围绕这个数组进行
     var list = loadTodoList()
 
-    renderTodoList(list)
+    // 当前筛选条件：all | active | completed
+    var currentFilter = 'all'
 
-    document.querySelector('.todo-input').addEventListener('keyup', (event) => {
-        if (event.key === 'Enter') {
-            if (!event.target.value || event.target.value.trim() === '') {
-                return
-            }
-            var value = event.target.value
-            list.push({
-                name: value,
-                complete: 0
-            })
-            saveTodoList()
-            renderTodoList(list)
-            event.target.value = ''
+    // 当前正在编辑的任务 id，null 表示没有编辑项
+    var editingId = null
+
+    // 页面核心节点缓存，避免反复查询 DOM
+    var todoForm = document.querySelector('.todo-form')
+    var todoInput = document.querySelector('.todo-input')
+    var todoList = document.querySelector('.todo-list')
+    var filterGroup = document.querySelector('.filter-group')
+    var clearCompletedButton = document.querySelector('.clear-completed-button')
+    var totalCount = document.getElementById('total-count')
+    var activeCount = document.getElementById('active-count')
+    var completedCount = document.getElementById('completed-count')
+    var todoEmpty = document.querySelector('.todo-empty')
+
+    // 事件绑定集中在这里，后续逻辑都由统一入口分发
+    todoForm.addEventListener('submit', handleAddTodo)
+    todoList.addEventListener('click', handleTodoListClick)
+    todoList.addEventListener('keydown', handleTodoListKeydown)
+    filterGroup.addEventListener('click', handleFilterChange)
+    clearCompletedButton.addEventListener('click', clearCompletedTodos)
+
+    // 首次渲染并把焦点放回输入框，方便直接新增任务
+    renderApp()
+    todoInput.focus()
+
+    function handleAddTodo(event) {
+        event.preventDefault()
+
+        // 统一做 trim，避免空格项进入列表
+        var value = todoInput.value.trim()
+        if (!value) {
+            return
         }
-    })
+
+        // 新增任务时直接生成唯一 id，后续所有操作都靠它定位
+        list.push({
+            id: createTodoId(),
+            name: value,
+            complete: 0
+        })
+
+        todoInput.value = ''
+        editingId = null
+        saveTodoList()
+        renderApp()
+        todoInput.focus()
+    }
+
+    function handleFilterChange(event) {
+        var target = event.target
+        if (target.tagName !== 'BUTTON') {
+            return
+        }
+
+        currentFilter = target.getAttribute('data-filter') || 'all'
+        renderApp()
+    }
+
+    function handleTodoListClick(event) {
+        var target = event.target
+        if (target.tagName !== 'BUTTON') {
+            return
+        }
+
+        // 通过 data-action 统一分发列表按钮事件
+        var action = target.getAttribute('data-action')
+        var id = target.getAttribute('data-id')
+
+        if (action === 'toggle') {
+            toggleTodo(id)
+            return
+        }
+
+        if (action === 'delete') {
+            deleteTodo(id)
+            return
+        }
+
+        if (action === 'edit') {
+            editingId = id
+            renderApp()
+            focusEditInput()
+            return
+        }
+
+        if (action === 'save-edit') {
+            saveEditedTodo(id)
+            return
+        }
+
+        if (action === 'cancel-edit') {
+            editingId = null
+            renderApp()
+            todoInput.focus()
+        }
+    }
+
+    function handleTodoListKeydown(event) {
+        var target = event.target
+        if (!target.classList || !target.classList.contains('todo-edit-input')) {
+            return
+        }
+
+        var id = target.getAttribute('data-id')
+
+        // 编辑态下 Enter 保存，Esc 取消
+        if (event.key === 'Enter') {
+            event.preventDefault()
+            saveEditedTodo(id)
+        }
+
+        if (event.key === 'Escape') {
+            event.preventDefault()
+            editingId = null
+            renderApp()
+            todoInput.focus()
+        }
+    }
+
+    function clearCompletedTodos() {
+        // 只保留未完成项，批量删除已完成项
+        var nextList = list.filter(function (item) {
+            return !item.complete
+        })
+
+        if (nextList.length === list.length) {
+            return
+        }
+
+        list = nextList
+        if (!findTodoById(editingId)) {
+            editingId = null
+        }
+        saveTodoList()
+        renderApp()
+    }
+
+    function toggleTodo(id) {
+        // 通过 id 查找并切换完成状态
+        var todo = findTodoById(id)
+        if (!todo) {
+            return
+        }
+
+        todo.complete = todo.complete ? 0 : 1
+        saveTodoList()
+        renderApp()
+    }
+
+    function deleteTodo(id) {
+        // 删除时仍然以 id 定位，避免数组下标变化带来错删
+        var index = findTodoIndexById(id)
+        if (index === -1) {
+            return
+        }
+
+        list.splice(index, 1)
+        if (editingId === id) {
+            editingId = null
+        }
+        saveTodoList()
+        renderApp()
+    }
+
+    function saveEditedTodo(id) {
+        // 保存编辑内容前，先拿到当前编辑框
+        var todo = findTodoById(id)
+        var editInput = document.querySelector('.todo-edit-input')
+        if (!todo || !editInput) {
+            return
+        }
+
+        // 编辑内容同样需要去空格，避免存入空值
+        var value = editInput.value.trim()
+        if (!value) {
+            editInput.focus()
+            return
+        }
+
+        todo.name = value
+        editingId = null
+        saveTodoList()
+        renderApp()
+        todoInput.focus()
+    }
 
     function loadTodoList() {
+        // 从 localStorage 读取历史数据，读不到就从空数组开始
         var saved = localStorage.getItem(STORAGE_KEY)
 
         if (!saved) {
@@ -67,40 +420,195 @@
 
         try {
             var parsed = JSON.parse(saved)
-            return Array.isArray(parsed) ? parsed : []
+            if (!Array.isArray(parsed)) {
+                return []
+            }
+
+            // 对旧数据做一次归一化，补齐 id，过滤非法项
+            var usedIds = {}
+            var normalizedList = []
+
+            parsed.forEach(function (item) {
+                if (!item || typeof item !== 'object') {
+                    return
+                }
+
+                var name = typeof item.name === 'string' ? item.name.trim() : ''
+                if (!name) {
+                    return
+                }
+
+                var id = typeof item.id === 'string' && item.id.trim() ? item.id.trim() : createTodoId()
+                while (usedIds[id]) {
+                    id = createTodoId()
+                }
+                usedIds[id] = true
+
+                normalizedList.push({
+                    id: id,
+                    name: name,
+                    complete: item.complete ? 1 : 0
+                })
+            })
+
+            return normalizedList
         } catch (error) {
+            // 本地存储损坏时宁可丢弃，也不要让页面报错
             return []
         }
     }
 
     function saveTodoList() {
+        // 将当前内存中的 list 写回浏览器本地存储
         localStorage.setItem(STORAGE_KEY, JSON.stringify(list))
     }
 
-    function renderTodoList(list) {
+    function createTodoId() {
+        // 简单且足够稳定的本地唯一 id
+        return 'todo-' + Date.now() + '-' + Math.random().toString(16).slice(2)
+    }
+
+    function findTodoById(id) {
+        // 根据 id 找到对应任务对象
+        return list.find(function (item) {
+            return item.id === id
+        }) || null
+    }
+
+    function findTodoIndexById(id) {
+        // 根据 id 找到数组下标，供删除等需要索引的场景使用
+        return list.findIndex(function (item) {
+            return item.id === id
+        })
+    }
+
+    function getVisibleList() {
+        // 根据当前筛选状态返回应展示的列表
+        return list.filter(function (item) {
+            if (currentFilter === 'active') {
+                return !item.complete
+            }
+
+            if (currentFilter === 'completed') {
+                return item.complete
+            }
+
+            return true
+        })
+    }
+
+    function getCompletedCount() {
+        // 统计已完成任务数量，供统计区和按钮状态使用
+        return list.filter(function (item) {
+            return item.complete
+        }).length
+    }
+
+    function renderApp() {
+        // 统一入口：状态、列表、空态、按钮状态一起刷新
+        renderFilterState()
+        renderStats()
+        renderTodoList()
+        renderEmptyState()
+        renderClearButtonState()
+    }
+
+    function renderFilterState() {
+        // 让当前筛选按钮高亮
+        var buttons = filterGroup.querySelectorAll('.filter-button')
+        buttons.forEach(function (button) {
+            var isActive = button.getAttribute('data-filter') === currentFilter
+            button.classList.toggle('is-active', isActive)
+        })
+    }
+
+    function renderStats() {
+        // 总数、未完成数、已完成数保持同步
+        var completed = getCompletedCount()
+        totalCount.textContent = list.length
+        activeCount.textContent = list.length - completed
+        completedCount.textContent = completed
+    }
+
+    function renderTodoList() {
+        // 先过滤，再根据是否处于编辑态输出不同 DOM
+        var visibleList = getVisibleList()
         var html = ''
-        list.forEach((element, index) => {
-            html += '<li class="' + (element.complete ? 'complete' : '') + '">'
-            html += '<span>' + element.name + '</span>'
-            html += '<button onclick="toggleComplete(' + index + ')">' + (element.complete ? '取消完成' : '完成') + '</button>'
-            html += '<button onclick="deleteTodo(' + index + ')">删除</button>'
+
+        visibleList.forEach(function (item) {
+            var isEditing = editingId === item.id
+            html += '<li class="todo-item' + (item.complete ? ' complete' : '') + (isEditing ? ' editing' : '') + '">'
+            html += '<div class="todo-item__content">'
+
+            if (isEditing) {
+                html += '<input class="todo-edit-input" data-id="' + escapeHtml(item.id) + '" type="text" value="' + escapeHtml(item.name) + '">'
+            } else {
+                html += '<span class="todo-text">' + escapeHtml(item.name) + '</span>'
+            }
+
+            html += '</div>'
+            html += '<div class="todo-actions">'
+
+            if (isEditing) {
+                html += '<button type="button" data-action="save-edit" data-id="' + escapeHtml(item.id) + '">保存</button>'
+                html += '<button type="button" data-action="cancel-edit" data-id="' + escapeHtml(item.id) + '">取消</button>'
+            } else {
+                html += '<button type="button" data-action="toggle" data-id="' + escapeHtml(item.id) + '">' + (item.complete ? '取消完成' : '完成') + '</button>'
+                html += '<button type="button" data-action="edit" data-id="' + escapeHtml(item.id) + '">编辑</button>'
+                html += '<button type="button" data-action="delete" data-id="' + escapeHtml(item.id) + '">删除</button>'
+            }
+
+            html += '</div>'
             html += '</li>'
-        });
+        })
 
-        console.log(html)
-        document.querySelector('.todo-input-bar').innerHTML = html
+        todoList.innerHTML = html
+
+        // 如果当前项处于编辑态，重新渲染后自动聚焦输入框
+        if (editingId) {
+            focusEditInput()
+        }
     }
 
-    function toggleComplete(index) {
-        list[index].complete = list[index].complete ? 0 : 1
-        saveTodoList()
-        renderTodoList(list)
+    function renderEmptyState() {
+        // 根据总列表和筛选后的列表决定空状态文案
+        var visibleList = getVisibleList()
+        var message = ''
+
+        if (list.length === 0) {
+            message = '还没有待办事项，先添加一条吧。'
+        } else if (visibleList.length === 0) {
+            message = '当前筛选条件下没有待办事项。'
+        }
+
+        todoEmpty.textContent = message
+        todoEmpty.hidden = !message
     }
 
-    function deleteTodo(index) {
-        list.splice(index, 1)
-        saveTodoList()
-        renderTodoList(list)
+    function renderClearButtonState() {
+        // 没有已完成项时，批量清除按钮不可点
+        clearCompletedButton.disabled = getCompletedCount() === 0
+    }
+
+    function focusEditInput() {
+        // 渲染后把焦点落到编辑框末尾，减少手动点击
+        var editInput = document.querySelector('.todo-edit-input')
+        if (!editInput) {
+            return
+        }
+
+        editInput.focus()
+        editInput.setSelectionRange(editInput.value.length, editInput.value.length)
+    }
+
+    function escapeHtml(value) {
+        // 渲染到 innerHTML 前先转义，避免特殊字符破坏结构
+        return String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
     }
 </script>
 
